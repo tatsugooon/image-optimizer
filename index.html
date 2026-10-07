@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>画像最適化ツール</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <header class="header">
+      <h1>画像最適化ツール</h1>
+      <p class="lead">
+        圧縮・リサイズ・トリミング・連番リネームをまとめて実行します。処理はすべてブラウザ内で完結し、画像はどこにも送信されません。
+      </p>
+      <p class="note" id="env-note"></p>
+    </header>
+
+    <main class="layout">
+      <div class="column column-files">
+        <section class="card card-files">
+          <h2>対象ファイル</h2>
+          <div class="dropzone" id="dropzone">
+            <p class="dropzone-text">フォルダまたは画像ファイルをここにドラッグ&amp;ドロップ</p>
+            <div class="row">
+              <button type="button" id="pick-folder">フォルダを選択</button>
+              <button type="button" id="pick-files">ファイルを選択</button>
+              <button type="button" class="ghost" id="clear-files">クリア</button>
+            </div>
+          </div>
+          <input type="file" id="file-input" accept="image/*,.heic,.heif,.avif,.tif,.tiff" multiple hidden />
+          <input type="file" id="dir-input" webkitdirectory multiple hidden />
+          <label class="check">
+            <input type="checkbox" id="recursive" checked />
+            サブフォルダも対象にする
+          </label>
+          <p class="summary" id="input-summary">まだ選択されていません。</p>
+
+          <div class="run-bar">
+            <button type="button" id="run" class="primary" disabled>実行する</button>
+            <button type="button" id="cancel" class="ghost" hidden>中止</button>
+          </div>
+          <div class="progress"><div class="progress-bar" id="progress-bar"></div></div>
+          <p class="summary" id="run-status">待機中</p>
+          <p class="summary strong" id="result-summary" hidden></p>
+
+          <ul class="file-list" id="file-list"></ul>
+        </section>
+      </div>
+
+      <div class="column column-settings">
+        <section class="card">
+          <h2>設定プリセット</h2>
+          <div class="field">
+            <label class="label" for="settings-preset">保存済みプリセット</label>
+            <div class="row">
+              <select id="settings-preset">
+                <option value="">（選択すると読み込みます）</option>
+              </select>
+              <button type="button" class="ghost" id="preset-delete">削除</button>
+            </div>
+          </div>
+          <div class="field">
+            <label class="label" for="preset-name">名前を付けて保存</label>
+            <div class="row">
+              <input type="text" id="preset-name" placeholder="例: 商品一覧用 800px" maxlength="60" />
+              <button type="button" id="preset-save">現在の設定を保存</button>
+            </div>
+          </div>
+          <p class="summary" id="preset-status"></p>
+          <p class="hint">
+            保存されるのはこのページの設定だけです。選択中のファイルと出力フォルダは含まれません。保存先はこのブラウザのローカル保存領域で、最後に使った設定は次回起動時に自動で復元します。
+          </p>
+        </section>
+
+        <section class="card">
+          <h2>圧縮</h2>
+          <div class="field">
+            <span class="label">圧縮モード</span>
+            <label class="check"
+              ><input type="radio" name="mode" value="auto" checked /> 自動（画質基準を保って最小化）</label
+            >
+            <label class="check"><input type="radio" name="mode" value="target" /> 目標サイズに収める</label>
+            <label class="check"><input type="radio" name="mode" value="quality" /> 品質を指定する</label>
+          </div>
+
+          <div class="field mode-auto">
+            <label class="label" for="ssim-target">画質基準</label>
+            <select id="ssim-target">
+              <option value="0.995">最優先（ほぼ無劣化 / 圧縮率低め）</option>
+              <option value="0.99">高画質</option>
+              <option value="0.98" selected>標準（おすすめ）</option>
+              <option value="0.96">圧縮優先</option>
+              <option value="0.93">最小サイズ優先</option>
+            </select>
+            <p class="hint">元画像との類似度（SSIM）が基準を満たす範囲で、いちばん軽くなる品質を自動で探します。</p>
+          </div>
+
+          <div class="field mode-target" hidden>
+            <label class="label" for="target-size">目標サイズ（KB / 1 ファイルあたり）</label>
+            <input type="number" id="target-size" value="200" min="5" step="10" />
+            <label class="check">
+              <input type="checkbox" id="allow-downscale" checked />
+              最低品質でも収まらない場合は解像度を落とす
+            </label>
+          </div>
+
+          <div class="field mode-quality" hidden>
+            <label class="label" for="quality">品質</label>
+            <input type="range" id="quality" min="40" max="95" step="5" value="80" />
+            <output id="quality-value">80</output>
+          </div>
+
+          <div class="field">
+            <label class="label" for="format">出力形式</label>
+            <select id="format">
+              <option value="smallest" selected>いちばん軽い形式を自動選択</option>
+              <option value="keep">元の形式を維持</option>
+              <option value="image/webp">WebP</option>
+              <option value="image/jpeg">JPEG</option>
+              <option value="image/png">PNG</option>
+              <option value="image/avif">AVIF</option>
+            </select>
+            <p class="hint" id="format-hint"></p>
+          </div>
+
+          <label class="check">
+            <input type="checkbox" id="skip-if-larger" checked />
+            圧縮しても軽くならない場合は元ファイルをそのまま出力する
+          </label>
+          <p class="hint">再エンコードのため EXIF（撮影情報・位置情報）は残りません。</p>
+        </section>
+
+        <section class="card">
+          <h2>リサイズ・トリミング</h2>
+          <div class="grid">
+            <div class="field">
+              <label class="label" for="crop-mode">トリミング</label>
+              <select id="crop-mode">
+                <option value="none" selected>しない</option>
+                <option value="square">正方形</option>
+                <option value="ratio">比率を指定</option>
+              </select>
+            </div>
+            <div class="field crop-ratio" hidden>
+              <span class="label">比率（幅 : 高さ）</span>
+              <div class="inline">
+                <input type="number" id="aspect-w" value="4" min="1" step="1" />
+                <span>:</span>
+                <input type="number" id="aspect-h" value="3" min="1" step="1" />
+              </div>
+            </div>
+            <div class="field crop-anchor" hidden>
+              <label class="label" for="anchor">切り出す位置</label>
+              <select id="anchor">
+                <option value="top-left">左上</option>
+                <option value="top">上</option>
+                <option value="top-right">右上</option>
+                <option value="left">左</option>
+                <option value="center" selected>中央</option>
+                <option value="right">右</option>
+                <option value="bottom-left">左下</option>
+                <option value="bottom">下</option>
+                <option value="bottom-right">右下</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div class="field">
+              <label class="label" for="resize-mode">リサイズ</label>
+              <select id="resize-mode">
+                <option value="none" selected>しない</option>
+                <option value="percent">比率（%）で指定</option>
+                <option value="width">幅を指定</option>
+                <option value="height">高さを指定</option>
+                <option value="fit">枠に収める（幅・高さの上限）</option>
+                <option value="exact">指定サイズにする</option>
+              </select>
+            </div>
+            <div class="field resize-percent" hidden>
+              <label class="label" for="resize-percent">倍率（%）</label>
+              <input type="number" id="resize-percent" value="50" min="1" max="400" step="5" />
+            </div>
+            <div class="field resize-width" hidden>
+              <label class="label" for="resize-width">幅（px）</label>
+              <input type="number" id="resize-width" value="1200" min="1" step="10" />
+            </div>
+            <div class="field resize-height" hidden>
+              <label class="label" for="resize-height">高さ（px）</label>
+              <input type="number" id="resize-height" value="1200" min="1" step="10" />
+            </div>
+          </div>
+
+          <label class="check">
+            <input type="checkbox" id="no-upscale" checked />
+            元より大きくしない（拡大しない）
+          </label>
+        </section>
+
+        <section class="card">
+          <h2>自動調整</h2>
+          <div class="field">
+            <label class="label" for="adjust-preset">調整プリセット</label>
+            <select id="adjust-preset">
+              <option value="none" selected>なし</option>
+              <option value="subtle">控えめ</option>
+              <option value="standard">標準</option>
+              <option value="strong">強め</option>
+              <option value="hdr">HDR風トーン</option>
+              <option value="custom">カスタム</option>
+            </select>
+            <p class="hint">
+              SDR のまま見た目を整えます。PQ / HLG やゲインマップを持つ本物の HDR 画像は、ブラウザの Canvas
+              が書き出しに対応していないため生成できません。
+            </p>
+          </div>
+          <div class="adjust-options" hidden>
+            <label class="check">
+              <input type="checkbox" id="adjust-levels" />
+              オートレベル（黒つぶれ・白飛びしない範囲でコントラストを伸ばす）
+            </label>
+            <label class="check">
+              <input type="checkbox" id="adjust-wb" />
+              ホワイトバランス補正（照明の色かぶりを打ち消す）
+            </label>
+            <div class="grid">
+              <div class="field">
+                <label class="label" for="adjust-saturation">彩度</label>
+                <input type="range" id="adjust-saturation" min="80" max="150" step="2" value="100" />
+                <output id="adjust-saturation-value">100%</output>
+              </div>
+              <div class="field">
+                <label class="label" for="adjust-sharpen">シャープ</label>
+                <input type="range" id="adjust-sharpen" min="0" max="100" step="5" value="0" />
+                <output id="adjust-sharpen-value">0%</output>
+              </div>
+              <div class="field">
+                <label class="label" for="adjust-tone">HDR風トーン</label>
+                <input type="range" id="adjust-tone" min="0" max="100" step="5" value="0" />
+                <output id="adjust-tone-value">0%</output>
+              </div>
+            </div>
+            <p class="hint">シャープはリサイズ後にかかります。強くしすぎると輪郭が硬くなり、容量も増えます。</p>
+          </div>
+          <div class="preview" id="adjust-preview" hidden>
+            <figure><figcaption>調整前</figcaption><canvas id="preview-before"></canvas></figure>
+            <figure><figcaption>調整後</figcaption><canvas id="preview-after"></canvas></figure>
+          </div>
+          <p class="summary" id="preview-note" hidden></p>
+        </section>
+
+        <section class="card">
+          <h2>リネーム</h2>
+          <label class="check">
+            <input type="checkbox" id="rename-enabled" />
+            パターンでリネームする
+          </label>
+          <div class="rename-options" hidden>
+            <div class="field">
+              <label class="label" for="rename-pattern">パターン</label>
+              <input type="text" id="rename-pattern" value="image-{連番}.{ext}" spellcheck="false" />
+              <p class="hint">
+                使えるトークン: <code>{連番}</code> <code>{連番:4}</code>（桁数指定） <code>{名前}</code>
+                <code>{ext}</code> <code>{元拡張子}</code> <code>{日付}</code> <code>{日付:YYYY-MM-DD}</code>
+                <code>{時刻}</code> <code>{幅}</code> <code>{高さ}</code> <code>{親フォルダ}</code> （英語名
+                <code>{seq}</code> <code>{name}</code> <code>{date}</code> <code>{w}</code> <code>{h}</code>
+                <code>{parent}</code> も利用可）
+              </p>
+            </div>
+            <div class="grid">
+              <div class="field">
+                <label class="label" for="rename-start">開始番号</label>
+                <input type="number" id="rename-start" value="1" step="1" />
+              </div>
+              <div class="field">
+                <label class="label" for="rename-step">増分</label>
+                <input type="number" id="rename-step" value="1" min="1" step="1" />
+              </div>
+              <div class="field">
+                <label class="label" for="rename-pad">ゼロ埋め桁数</label>
+                <input type="number" id="rename-pad" value="3" min="1" max="10" step="1" />
+              </div>
+              <div class="field">
+                <label class="label" for="rename-sort">並び順（連番の基準）</label>
+                <select id="rename-sort">
+                  <option value="name" selected>ファイル名（昇順）</option>
+                  <option value="name-desc">ファイル名（降順）</option>
+                  <option value="mtime">更新日時（古い順）</option>
+                  <option value="mtime-desc">更新日時（新しい順）</option>
+                  <option value="size">サイズ（小さい順）</option>
+                  <option value="size-desc">サイズ（大きい順）</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="label" for="extension-case">拡張子の表記</label>
+                <select id="extension-case">
+                  <option value="lower" selected>小文字</option>
+                  <option value="upper">大文字</option>
+                </select>
+              </div>
+            </div>
+            <label class="check">
+              <input type="checkbox" id="force-extension" checked />
+              パターンの拡張子より実際の出力形式を優先する
+            </label>
+            <p class="hint">
+              出力形式を自動選択にしている場合、一覧に出る拡張子は仮の値です。実行時に確定した形式へ置き換わります。
+            </p>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>出力先</h2>
+          <div class="field">
+            <label class="check"
+              ><input type="radio" name="output" value="directory" checked /> フォルダに書き出す</label
+            >
+            <label class="check"><input type="radio" name="output" value="zip" /> ZIP でまとめてダウンロード</label>
+          </div>
+          <div class="row output-directory">
+            <button type="button" id="pick-output">出力フォルダを選択</button>
+            <span class="summary" id="output-summary">未選択</span>
+          </div>
+          <label class="check">
+            <input type="checkbox" id="preserve-structure" checked />
+            元のサブフォルダ構造を保持する
+          </label>
+        </section>
+      </div>
+    </main>
+
+    <script src="js/geometry.js"></script>
+    <script src="js/rename.js"></script>
+    <script src="js/quality.js"></script>
+    <script src="js/adjust.js"></script>
+    <script src="js/zip.js"></script>
+    <script src="js/encoder.js"></script>
+    <script src="js/files.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

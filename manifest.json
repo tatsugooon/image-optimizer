@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "画像最適化ツール",
+  "version": "1.0.0",
+  "description": "画像の圧縮・リサイズ・トリミング・連番リネームをブラウザ内で実行します。",
+  "action": {
+    "default_title": "画像最適化ツールを開く"
+  },
+  "background": {
+    "service_worker": "js/background.js"
+  }
+}

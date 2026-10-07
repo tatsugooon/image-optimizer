@@ -1,0 +1,373 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f5f6f8;
+  --panel: #ffffff;
+  --border: #d9dce3;
+  --text: #1c1f24;
+  --muted: #6b7280;
+  --accent: #1f6feb;
+  --accent-text: #ffffff;
+  --ok: #0f7b52;
+  --warn: #a16207;
+  --error: #b42318;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181d;
+    --panel: #1e2127;
+    --border: #333842;
+    --text: #e8eaed;
+    --muted: #9aa3af;
+    --accent: #4f8cff;
+    --ok: #4ade80;
+    --warn: #fbbf24;
+    --error: #f87171;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 16px 64px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Segoe UI", Meiryo,
+    sans-serif;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.header {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 32px 0 8px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.lead,
+.note {
+  margin: 0 0 4px;
+  color: var(--muted);
+}
+
+.layout {
+  max-width: 1360px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.column {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (min-width: 901px) {
+  /* 一覧を見ながら右側の設定を触れるよう左カラムを固定する。
+     画面が低いときは列ごとスクロールさせ、実行ボタンが隠れないようにする */
+  .column-files {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.hint {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.hint code {
+  background: rgb(127 127 127 / 15%);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inline input {
+  width: 80px;
+}
+
+.check {
+  display: block;
+  margin: 4px 0;
+}
+
+.check input {
+  margin-right: 6px;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  max-width: 320px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+input[type="range"] {
+  width: 240px;
+  vertical-align: middle;
+}
+
+button {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+button.ghost {
+  color: var(--muted);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.dropzone.dragover {
+  border-color: var(--accent);
+  background: rgb(79 140 255 / 8%);
+}
+
+.dropzone-text {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+.dropzone .row {
+  justify-content: center;
+}
+
+.summary {
+  margin: 12px 0 0;
+  color: var(--muted);
+}
+
+.summary.strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.progress {
+  height: 8px;
+  margin-top: 12px;
+  background: rgb(127 127 127 / 20%);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.run-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.run-bar button {
+  flex: 1;
+}
+
+.file-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  max-height: min(45vh, 460px);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.file-list:empty {
+  display: none;
+}
+
+.file-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.file-row:last-child {
+  border-bottom: none;
+}
+
+.file-index {
+  color: var(--muted);
+  text-align: right;
+}
+
+.file-body {
+  min-width: 0;
+}
+
+.file-name,
+.file-output {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-output {
+  color: var(--accent);
+}
+
+.file-output::before {
+  content: "→ ";
+  color: var(--muted);
+}
+
+.file-meta {
+  display: flex;
+  gap: 8px;
+  color: var(--muted);
+}
+
+.state {
+  white-space: nowrap;
+}
+
+.state-ok {
+  color: var(--ok);
+}
+
+.state-kept,
+.state-pending {
+  color: var(--muted);
+}
+
+.state-warn {
+  color: var(--warn);
+}
+
+.state-error {
+  color: var(--error);
+}
+
+.preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.preview figure {
+  margin: 0;
+  max-width: 400px;
+}
+
+.preview figcaption {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.preview canvas {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgb(127 127 127 / 12%);
+}
